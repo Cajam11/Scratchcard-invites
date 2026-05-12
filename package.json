@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "Scratchcard-invites",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,13 +9,20 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.56.0",
+    "bcryptjs": "^3.0.2",
+    "html2canvas": "^1.4.1",
+    "jsonwebtoken": "^9.0.2",
     "next": "16.2.6",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
