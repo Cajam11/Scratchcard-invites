@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Attempt {
   id: string
@@ -11,112 +11,149 @@ interface Attempt {
   created_at: string
 }
 
+interface AttemptApiRow {
+  id: string
+  teacher_id: string
+  user_input: string
+  success: boolean
+  created_at: string
+  teachers?: {
+    name?: string
+  } | null
+}
+
 export default function AttemptsPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'success' | 'failed'>('all')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  useEffect(() => {
-    loadAttempts()
-  }, [filter])
-
-  const loadAttempts = async () => {
+  const loadAttempts = async (showLoadingState = true) => {
     try {
-      setLoading(true)
+      if (showLoadingState) {
+        setLoading(true)
+        setErrorMessage('')
+      }
+
       const res = await fetch('/api/admin/attempts')
       const data = await res.json()
-      if (res.ok) {
-        setAttempts(data.attempts.map((a: any) => ({ ...a, teacher_name: a.teachers?.name || 'Neznamy' })))
+
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Nepodarilo sa nacitat pokusy')
+        return
       }
+
+      const attemptsFromApi = (data.attempts || []) as AttemptApiRow[]
+      setAttempts(
+        attemptsFromApi.map((attempt) => ({
+          ...attempt,
+          teacher_name: attempt.teachers?.name || 'Neznamy',
+        }))
+      )
     } catch (err) {
       console.error(err)
+      setErrorMessage('Problem so sietou')
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredAttempts = attempts.filter((a) => {
-    if (filter === 'success') return a.success
-    if (filter === 'failed') return !a.success
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadAttempts(false)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  const filteredAttempts = attempts.filter((attempt) => {
+    if (filter === 'success') return attempt.success
+    if (filter === 'failed') return !attempt.success
     return true
   })
 
+  const totalSuccess = attempts.filter((attempt) => attempt.success).length
+  const totalFailed = attempts.length - totalSuccess
+
   return (
-    <div className="mx-auto max-w-6xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-[#c4a661]">Pokusy overenia</h1>
-        <p className="mt-2 text-slate-400">Zobrazte vsetky pokusy o overenie ucitelov</p>
-      </div>
+    <div className="space-y-8">
+      <section className="relative overflow-hidden rounded-2xl border border-[#c4a661]/30 bg-[#121212]/95 p-6 shadow-lg shadow-black/50 sm:p-8">
+        <div className="absolute left-1/2 top-0 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#c4a661] to-transparent" />
+        <p className="text-xs uppercase tracking-[0.35em] text-[#c4a661]/80">Overenie</p>
+        <h1 className="mt-3 text-3xl text-white sm:text-4xl">Pokusy overenia</h1>
+        <p className="mt-2 text-sm text-neutral-400">Prehlad o zadanych slovach a vysledkoch overenia</p>
+      </section>
 
-      {/* Filter Buttons */}
-      <div className="mb-8 flex gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-            filter === 'all'
-              ? 'bg-[#c4a661]/20 text-[#c4a661]'
-              : 'border border-white/10 text-slate-400 hover:text-slate-300'
-          }`}
-        >
-          Vsetky ({attempts.length})
-        </button>
-        <button
-          onClick={() => setFilter('success')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-            filter === 'success'
-              ? 'bg-green-400/20 text-green-300'
-              : 'border border-white/10 text-slate-400 hover:text-slate-300'
-          }`}
-        >
-          Uspesne ({attempts.filter((a) => a.success).length})
-        </button>
-        <button
-          onClick={() => setFilter('failed')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-            filter === 'failed'
-              ? 'bg-red-400/20 text-red-300'
-              : 'border border-white/10 text-slate-400 hover:text-slate-300'
-          }`}
-        >
-          Neuspesne ({attempts.filter((a) => !a.success).length})
-        </button>
-      </div>
+      <section className="rounded-2xl border border-[#c4a661]/25 bg-[#121212]/90 p-6 shadow-lg shadow-black/40 sm:p-8">
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition ${
+              filter === 'all'
+                ? 'border-[#c4a661] bg-[#c4a661] text-[#0a0a0a]'
+                : 'border-[#c4a661]/40 text-[#c4a661] hover:border-[#c4a661] hover:bg-[#c4a661]/10'
+            }`}
+          >
+            Vsetky ({attempts.length})
+          </button>
+          <button
+            onClick={() => setFilter('success')}
+            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition ${
+              filter === 'success'
+                ? 'border-emerald-400 bg-emerald-400 text-[#04140c]'
+                : 'border-emerald-400/40 text-emerald-300 hover:border-emerald-400 hover:bg-emerald-500/10'
+            }`}
+          >
+            Uspesne ({totalSuccess})
+          </button>
+          <button
+            onClick={() => setFilter('failed')}
+            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition ${
+              filter === 'failed'
+                ? 'border-red-400 bg-red-400 text-[#1d0707]'
+                : 'border-red-400/40 text-red-300 hover:border-red-400 hover:bg-red-500/10'
+            }`}
+          >
+            Neuspesne ({totalFailed})
+          </button>
+        </div>
 
-      {/* Attempts Table */}
-      <div className="rounded-2xl border border-white/10 bg-[#121212]/80 p-8 backdrop-blur">
         {loading ? (
-          <p className="text-slate-400">Nacitavam...</p>
+          <p className="text-[#c4a661]">Nacitavam pokusy...</p>
+        ) : errorMessage ? (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {errorMessage}
+          </div>
         ) : filteredAttempts.length === 0 ? (
-          <p className="text-slate-400">Ziadne pokusy.</p>
+          <p className="text-neutral-400">Ziadne zaznamy pre aktualny filter.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="border-b border-[#c4a661]/30 text-[#c4a661]">
                 <tr>
-                  <th className="pb-3">Ucitel</th>
-                  <th className="pb-3">Zadany text</th>
-                  <th className="pb-3">Vysledok</th>
-                  <th className="pb-3">Cas</th>
+                  <th className="pb-3 font-medium">Ucitel</th>
+                  <th className="pb-3 font-medium">Zadany text</th>
+                  <th className="pb-3 font-medium">Vysledok</th>
+                  <th className="pb-3 font-medium">Cas</th>
                 </tr>
               </thead>
-              <tbody className="space-y-2">
+              <tbody>
                 {filteredAttempts.map((attempt) => (
-                  <tr key={attempt.id} className="border-b border-white/5 hover:bg-white/5">
+                  <tr key={attempt.id} className="border-b border-[#c4a661]/10 hover:bg-white/5">
                     <td className="py-3 text-white">{attempt.teacher_name}</td>
-                    <td className="py-3 text-slate-400">{attempt.user_input || '-'}</td>
+                    <td className="py-3 text-neutral-400">{attempt.user_input || '-'}</td>
                     <td className="py-3">
                       <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        className={`inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.14em] ${
                           attempt.success
-                            ? 'bg-green-400/20 text-green-300'
-                            : 'bg-red-400/20 text-red-300'
+                            ? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-300'
+                            : 'border-red-400/50 bg-red-500/10 text-red-300'
                         }`}
                       >
-                        {attempt.success ? '✓ Uspesne' : '✗ Neuspesne'}
+                        {attempt.success ? 'Uspesne' : 'Neuspesne'}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-500">
+                    <td className="py-3 text-neutral-500">
                       {new Date(attempt.created_at).toLocaleDateString('sk-SK')}
                     </td>
                   </tr>
@@ -125,7 +162,7 @@ export default function AttemptsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

@@ -5,21 +5,28 @@ import { useEffect, useRef, useState, ReactNode } from 'react'
 type ScratchCardProps = {
   onReveal?: () => void
   children?: ReactNode
+  containerClassName?: string
+  contentClassName?: string
 }
 
-export default function ScratchCard({ onReveal, children }: ScratchCardProps) {
+export default function ScratchCard({
+  onReveal,
+  children,
+  containerClassName,
+  contentClassName,
+}: ScratchCardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [revealed, setRevealed] = useState(false)
   
   // Set dimensions dynamically based on container content
-  const [dimensions, setDimensions] = useState({ width: 420, height: 250 })
+  const [dimensions, setDimensions] = useState({ width: 680, height: 280 })
 
   useEffect(() => {
     if (containerRef.current) {
       const { width, height } = containerRef.current.getBoundingClientRect()
       // Use fallback minimums if it renders too small early on
-      setDimensions({ width: Math.max(width, 300), height: Math.max(height, 200) })
+      setDimensions({ width: Math.max(width, 420), height: Math.max(height, 220) })
     }
   }, [children])
 
@@ -29,25 +36,24 @@ export default function ScratchCard({ onReveal, children }: ScratchCardProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Create an elegant gold scratch layer
+    // Create a modern dark-blue scratch layer
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-    gradient.addColorStop(0, '#856A28')
-    gradient.addColorStop(0.5, '#C9A653')
-    gradient.addColorStop(1, '#6F5419')
+    gradient.addColorStop(0, '#0a1730')
+    gradient.addColorStop(0.5, '#15335d')
+    gradient.addColorStop(1, '#091523')
 
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     // Add pattern or noise
-    ctx.fillStyle = 'rgba(255,255,255,0.1)'
+    ctx.fillStyle = 'rgba(120,170,245,0.16)'
     for(let i=0; i < 500; i++) {
         ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2)
     }
 
-    ctx.fillStyle = '#0a0a0a'
-    ctx.font = '600 18px sans-serif'
+    ctx.fillStyle = 'rgba(228,238,255,0.92)'
+    ctx.font = '600 17px sans-serif'
     ctx.textAlign = 'center'
-    ctx.letterSpacing = '4px'
     ctx.fillText('ZOTRITE PRE ODOMKNUTIE', canvas.width / 2, canvas.height / 2)
   }, [dimensions])
 
@@ -78,9 +84,14 @@ export default function ScratchCard({ onReveal, children }: ScratchCardProps) {
   }
 
   return (
-    <div className="relative group mx-auto w-full max-w-sm rounded-lg overflow-hidden border border-[#c4a661]/40" ref={containerRef}>
+    <div
+      className={`relative group mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-[rgba(53,88,140,0.55)] ${containerClassName ?? ''}`}
+      ref={containerRef}
+    >
       {/* Background content (The real details to be revealed) */}
-      <div className="bg-black/40 backdrop-blur-sm p-8 min-h-[250px] flex items-center justify-center pointer-events-none">
+      <div
+        className={`min-h-[240px] bg-[rgba(7,10,20,0.92)] px-6 py-8 sm:px-10 flex items-center justify-center pointer-events-none ${contentClassName ?? ''}`}
+      >
         {children}
       </div>
       
@@ -90,6 +101,7 @@ export default function ScratchCard({ onReveal, children }: ScratchCardProps) {
           ref={canvasRef}
           width={dimensions.width}
           height={dimensions.height}
+          data-scratch-overlay="true"
           className="absolute inset-0 z-10 w-full h-full touch-none cursor-pointer"
           onPointerDown={(event) => scratch(event.clientX, event.clientY)}
           onPointerMove={(event) => event.buttons === 1 && scratch(event.clientX, event.clientY)}

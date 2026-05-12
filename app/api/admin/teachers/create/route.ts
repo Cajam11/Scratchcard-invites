@@ -2,6 +2,8 @@ import { getSupabaseService } from '@/lib/supabase'
 import QRCode from 'qrcode'
 import bcrypt from 'bcryptjs'
 import { maskSentence } from '@/lib/phrase'
+import { NextResponse } from 'next/server'
+import { verifyAdminSession } from '@/lib/admin-auth'
 
 function slugify(value: string) {
   return value
@@ -14,6 +16,11 @@ function slugify(value: string) {
 
 export async function POST(request: Request) {
   try {
+    const adminSession = await verifyAdminSession()
+    if (!adminSession) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const {
       name,
@@ -25,7 +32,7 @@ export async function POST(request: Request) {
     } = body
 
     if (!name || !sentence || !hidden_word) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 })
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const slug = slugify(name)
@@ -54,22 +61,20 @@ export async function POST(request: Request) {
       .single()
 
     if (error || !data) {
-      return new Response(JSON.stringify({ error: error?.message || 'Failed to create teacher' }), {
-        status: 500,
-      })
+      return NextResponse.json({ error: error?.message || 'Failed to create teacher' }, { status: 500 })
     }
 
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         success: true,
         teacher: data,
         inviteUrl,
         qrDataUrl,
-      }),
+      },
       { status: 201 }
     )
   } catch (err) {
     console.error(err)
-    return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

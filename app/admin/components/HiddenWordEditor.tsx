@@ -16,16 +16,16 @@ export default function HiddenWordEditor({
   onHiddenWordChange,
 }: Props) {
   const words = splitSentenceWords(sentence)
-  const preview = sentence || 'Sem napíšte vetu a potom kliknite slovo, ktoré má byť skryté.'
+  const preview = sentence || 'Sem napis vetu a potom klikni slovo, ktore ma byt skryte.'
   const escapedHiddenWord = hiddenWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const previewParts = hiddenWord
     ? sentence.split(new RegExp(`(${escapedHiddenWord})`, 'i'))
     : [sentence]
 
   return (
-    <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-[#c4a661]/20 bg-black/25 p-5">
       <div>
-        <label className="block text-sm font-medium text-slate-300">Celá veta</label>
+        <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">Cela veta</label>
         <textarea
           value={sentence}
           onChange={(e) => {
@@ -35,22 +35,30 @@ export default function HiddenWordEditor({
             }
           }}
           rows={3}
-          placeholder="Napr.: Ja počkám, ja mám času dosť."
-          className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-amber-300"
+          placeholder="Napr. Ja pockam, ja mam casu dost."
+          className="mt-2 w-full rounded-xl border border-[#c4a661]/20 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-neutral-500 focus:border-[#c4a661]"
         />
       </div>
 
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="block text-sm font-medium text-slate-300">Klikni na slovo, ktoré sa skryje</label>
-          {hiddenWord && <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs text-amber-200">Skryté: {hiddenWord}</span>}
+          <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">
+            Klikni na slovo na skrytie
+          </label>
+          {hiddenWord && (
+            <span className="rounded-full border border-[#c4a661]/40 bg-[#c4a661]/15 px-3 py-1 text-xs text-[#c4a661]">
+              Skryte: {hiddenWord}
+            </span>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-slate-900/60 p-3">
+
+        <div className="flex flex-wrap gap-2 rounded-xl border border-[#c4a661]/15 bg-black/30 p-3">
           {words.length === 0 ? (
-            <p className="text-sm text-slate-500">Najprv napíš vetu.</p>
+            <p className="text-sm text-neutral-500">Najprv napis vetu.</p>
           ) : (
             words.map((word, index) => {
               const isActive = hiddenWord.toLowerCase() === word.toLowerCase()
+
               return (
                 <button
                   key={`${word}-${index}`}
@@ -58,8 +66,8 @@ export default function HiddenWordEditor({
                   onClick={() => onHiddenWordChange(word)}
                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
                     isActive
-                      ? 'border-amber-300 bg-amber-300 text-slate-950 shadow-[0_0_0_1px_rgba(251,191,36,0.25)]'
-                      : 'border-white/10 bg-white/5 text-slate-200 hover:border-amber-300/50 hover:bg-amber-300/10 hover:text-amber-200'
+                      ? 'border-[#c4a661] bg-[#c4a661] text-[#0a0a0a]'
+                      : 'border-[#c4a661]/30 bg-[#c4a661]/5 text-neutral-200 hover:border-[#c4a661]/60 hover:bg-[#c4a661]/15 hover:text-[#f0dba7]'
                   }`}
                 >
                   {word}
@@ -70,14 +78,14 @@ export default function HiddenWordEditor({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-slate-500">Náhľad</p>
+      <div className="rounded-xl border border-dashed border-[#c4a661]/25 bg-[#c4a661]/5 p-4 text-sm text-neutral-200">
+        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[#c4a661]/80">Nahlad</p>
         <p className="leading-7">
           {sentence ? (
             <>
               {previewParts.map((part, index) =>
                 hiddenWord && part.toLowerCase() === hiddenWord.toLowerCase() ? (
-                  <span key={index} className="rounded-md bg-amber-300/15 px-1.5 py-0.5 text-amber-200">
+                  <span key={index} className="rounded-md bg-[#c4a661]/20 px-1.5 py-0.5 text-[#f0dba7]">
                     {part}
                   </span>
                 ) : (

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
+import { verifyAdminSession } from '@/lib/admin-auth'
 import { getSupabaseService } from '@/lib/supabase'
 
 export async function GET() {
   try {
+    const adminSession = await verifyAdminSession()
+    if (!adminSession) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = getSupabaseService()
     const { data: attempts, error } = await supabase
       .from('attempts')
@@ -14,7 +20,7 @@ export async function GET() {
     }
 
     return NextResponse.json({ attempts })
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

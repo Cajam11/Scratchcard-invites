@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import HiddenWordEditor from '@/app/admin/components/HiddenWordEditor'
+import Image from 'next/image'
 
 interface Teacher {
   id: string
@@ -31,27 +32,37 @@ export default function TeachersPage() {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [qrUrl, setQrUrl] = useState('')
-  
-  // NEW: State for live preview
   const [previewTeacher, setPreviewTeacher] = useState<Teacher | null>(null)
 
-  useEffect(() => {
-    loadTeachers()
-  }, [])
-
-  const loadTeachers = async () => {
+  const loadTeachers = async (showLoadingState = true) => {
     try {
-      setLoading(true)
+      if (showLoadingState) {
+        setLoading(true)
+      }
       const res = await fetch('/api/admin/teachers')
       const data = await res.json()
-      if (res.ok) setTeachers(data.teachers || [])
+
+      if (!res.ok) {
+        setMessage(`Chyba: ${data.error || 'Nepodarilo sa nacitat ucitelov'}`)
+        return
+      }
+
+      setTeachers(data.teachers || [])
     } catch (err) {
       console.error(err)
-      setMessage('Chyba pri nacitavani ucitelov')
+      setMessage('Chyba: Problem so sietou')
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadTeachers(false)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,11 +79,11 @@ export default function TeachersPage() {
 
       const result = await response.json()
       if (!response.ok) {
-        setMessage(`Chyba: ${result.error}`)
+        setMessage(`Chyba: ${result.error || 'Nepodarilo sa vytvorit ucitela'}`)
         return
       }
 
-      setMessage(`Ucitel "${result.teacher.name}" bol uspesne vytvoreny!`)
+      setMessage(`Ucitel "${result.teacher.name}" bol uspesne vytvoreny.`)
       setQrUrl(result.qrDataUrl)
       setFormData({
         name: '',
@@ -85,179 +96,147 @@ export default function TeachersPage() {
 
       await loadTeachers()
     } catch (err) {
-      setMessage('Chyba siete')
+      console.error(err)
+      setMessage('Chyba: Problem so sietou')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-[#c4a661]">Ucitelia</h1>
-        <p className="mt-2 text-slate-400">Spravujte ucitelov a ich pozvanky</p>
-      </div>
+    <div className="space-y-8">
+      <section className="relative overflow-hidden rounded-2xl border border-[#c4a661]/30 bg-[#121212]/95 p-6 shadow-lg shadow-black/50 sm:p-8">
+        <div className="absolute left-1/2 top-0 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#c4a661] to-transparent" />
+        <p className="text-xs uppercase tracking-[0.35em] text-[#c4a661]/80">Pozvanky</p>
+        <h1 className="mt-3 text-3xl text-white sm:text-4xl">Ucitelia</h1>
+        <p className="mt-2 text-sm text-neutral-400">Sprava personalizovanych invite odkazov a QR kodov</p>
+      </section>
 
-      <div className="mb-8">
+      <section className="rounded-2xl border border-[#c4a661]/25 bg-[#121212]/90 p-6 shadow-lg shadow-black/40 sm:p-8">
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-xl border border-[#c4a661] bg-[#121212] px-6 py-3 font-semibold text-[#c4a661] transition hover:bg-[#c4a661] hover:text-black"
+          onClick={() => setShowForm((prev) => !prev)}
+          className="rounded-full border border-[#c4a661] px-6 py-2.5 text-xs uppercase tracking-[0.24em] text-[#c4a661] transition hover:bg-[#c4a661] hover:text-[#0a0a0a]"
         >
-          {showForm ? 'Zrusit' : '+ Pridat ucitela'}
+          {showForm ? 'Zrusit' : 'Pridat ucitela'}
         </button>
-      </div>
 
-      {showForm && (
-        <div className="mb-8 rounded-2xl border border-[#c4a661]/40 bg-[#121212] p-8 shadow-xl">
-          <h2 className="mb-6 text-xl font-semibold text-white">Pridat noveho ucitela</h2>
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-slate-300">Meno</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Meno Priezvisko"
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-4 py-2 text-white placeholder:text-slate-500 outline-none focus:border-[#c4a661]"
-                />
-              </div>
+        {showForm && (
+          <div className="mt-7 rounded-2xl border border-[#c4a661]/20 bg-black/25 p-5 sm:p-6">
+            <h2 className="mb-5 text-lg uppercase tracking-[0.18em] text-[#c4a661]">Novy ucitel</h2>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300">Datum stuzkovej</label>
-                <input
-                  type="date"
-                  value={formData.event_date}
-                  onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-4 py-2 text-white outline-none focus:border-[#c4a661]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300">Cas</label>
-                <input
-                  type="time"
-                  value={formData.event_time}
-                  onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-4 py-2 text-white outline-none focus:border-[#c4a661]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300">Miesto</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Miestnost, sala"
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-4 py-2 text-white placeholder:text-slate-500 outline-none focus:border-[#c4a661]"
-                />
-              </div>
-            </div>
-
-            <HiddenWordEditor
-              sentence={formData.sentence}
-              hiddenWord={formData.hidden_word}
-              onSentenceChange={(sentence) => setFormData({ ...formData, sentence })}
-              onHiddenWordChange={(hidden_word) => setFormData({ ...formData, hidden_word })}
-            />
-
-            <button
-              type="submit"
-              disabled={submitting || !formData.hidden_word || !formData.sentence}
-              className="w-full rounded-lg bg-[#c4a661] py-3 tracking-widest uppercase font-semibold text-black transition hover:bg-[#a68a4d] disabled:opacity-50"
-            >
-              {submitting ? 'Vytvaram...' : 'Vytvorit ucitela'}
-            </button>
-
-            {message && (
-              <div
-                className={`rounded-lg border p-3 ${
-                  message.startsWith('Chyba')
-                    ? 'border-red-500/30 bg-red-500/10 text-red-400'
-                    : 'border-green-500/30 bg-green-500/10 text-green-400'
-                }`}
-              >
-                {message}
-              </div>
-            )}
-
-            {qrUrl && (
-              <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 p-4">
-                <p className="mb-3 text-sm font-medium text-amber-300">QR kod pozvanky:</p>
-                <img src={qrUrl} alt="QR code" className="h-48 w-48 rounded-lg bg-white p-2" />
-              </div>
-            )}
-          </form>
-        </div>
-      )}
-
-      {previewTeacher && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-           <div className="relative w-full max-w-2xl border border-[#c4a661]/40 bg-[#121212] p-8 md:p-14 shadow-2xl">
-             <button onClick={() => setPreviewTeacher(null)} className="absolute top-4 right-4 text-[#c4a661] hover:text-white">XZavriet</button>
-             <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-[#c4a661]/60"></div>
-             <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-[#c4a661]/60"></div>
-             <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-[#c4a661]/60"></div>
-             <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-[#c4a661]/60"></div>
-
-             <div className="text-center relative z-10 mx-auto">
-                <h2 className="text-[#c4a661] text-sm tracking-[0.4em] uppercase mb-4">Srdecne Vas pozyvame (Nahl'ad)</h2>
-                <h1 className="text-4xl text-white mb-6">Nasa Stuzkova</h1>
-                <p className="text-xl text-neutral-300 italic mb-10">Vazeny ucitel/ka<br/><span className="text-2xl text-[#c4a661] mt-2 block">{previewTeacher.name}</span></p>
-
-                <div className="animate-in fade-in zoom-in duration-700 bg-black/40 border border-[#c4a661]/20 p-8 rounded-lg backdrop-blur-sm max-w-md mx-auto">
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-1">Datum</p>
-                      <p className="text-2xl text-[#c4a661]">{previewTeacher.event_date || 'Doplnime'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-1">Cas</p>
-                      <p className="text-2xl text-[#c4a661]">{previewTeacher.event_time || 'Doplnime'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-1">Miesto</p>
-                      <p className="text-xl text-white">{previewTeacher.location || 'Doplnime'}</p>
-                    </div>
-                  </div>
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">Meno</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Meno Priezvisko"
+                    className="mt-2 w-full rounded-xl border border-[#c4a661]/20 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-neutral-500 focus:border-[#c4a661]"
+                  />
                 </div>
-            </div>
-           </div>
-        </div>
-      )}
 
-      {/* Table */}
-      <div className="rounded-2xl border border-[#c4a661]/20 bg-[#121212]/80 p-8 shadow-lg">
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">Datum stuzkovej</label>
+                  <input
+                    type="date"
+                    value={formData.event_date}
+                    onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                    className="mt-2 w-full rounded-xl border border-[#c4a661]/20 bg-black/30 px-4 py-3 text-white outline-none focus:border-[#c4a661]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">Cas</label>
+                  <input
+                    type="time"
+                    value={formData.event_time}
+                    onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                    className="mt-2 w-full rounded-xl border border-[#c4a661]/20 bg-black/30 px-4 py-3 text-white outline-none focus:border-[#c4a661]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-[#c4a661]/85">Miesto</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Miestnost alebo sala"
+                    className="mt-2 w-full rounded-xl border border-[#c4a661]/20 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-neutral-500 focus:border-[#c4a661]"
+                  />
+                </div>
+              </div>
+
+              <HiddenWordEditor
+                sentence={formData.sentence}
+                hiddenWord={formData.hidden_word}
+                onSentenceChange={(sentence) => setFormData({ ...formData, sentence })}
+                onHiddenWordChange={(hidden_word) => setFormData({ ...formData, hidden_word })}
+              />
+
+              <button
+                type="submit"
+                disabled={submitting || !formData.hidden_word || !formData.sentence}
+                className="w-full rounded-full border border-[#c4a661] bg-[#c4a661] py-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#0a0a0a] transition hover:bg-[#d6b56a] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? 'Vytvaram...' : 'Vytvorit ucitela'}
+              </button>
+
+              {message && (
+                <div
+                  className={`rounded-xl border px-4 py-3 text-sm ${
+                    message.startsWith('Chyba')
+                      ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                      : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                  }`}
+                >
+                  {message}
+                </div>
+              )}
+
+              {qrUrl && (
+                <div className="rounded-xl border border-[#c4a661]/30 bg-[#c4a661]/5 p-4">
+                  <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#c4a661]/90">QR kod pozvanky</p>
+                  <Image src={qrUrl} alt="QR code" width={192} height={192} className="rounded-lg bg-white p-2" />
+                </div>
+              )}
+            </form>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-[#c4a661]/25 bg-[#121212]/90 p-6 shadow-lg shadow-black/40 sm:p-8">
         {loading ? (
-          <p className="text-[#c4a661]">Nacitavam...</p>
+          <p className="text-[#c4a661]">Nacitavam ucitelov...</p>
         ) : teachers.length === 0 ? (
-          <p className="text-slate-400">Zatial neboli vytvoreni ziadni ucitelia.</p>
+          <p className="text-neutral-400">Zatial nie su vytvoreni ziadni ucitelia.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="border-b border-[#c4a661]/30 text-[#c4a661]">
                 <tr>
-                  <th className="pb-3">Meno</th>
-                  <th className="pb-3">Veta (oznamko)</th>
-                  <th className="pb-3">Skryte slovo</th>
-                  <th className="pb-3">Datum pridania</th>
-                  <th className="pb-3">Akcia</th>
+                  <th className="pb-3 font-medium">Meno</th>
+                  <th className="pb-3 font-medium">Veta</th>
+                  <th className="pb-3 font-medium">Skryte slovo</th>
+                  <th className="pb-3 font-medium">Datum pridania</th>
+                  <th className="pb-3 font-medium">Akcia</th>
                 </tr>
               </thead>
-              <tbody className="space-y-2">
+              <tbody>
                 {teachers.map((teacher) => (
-                  <tr key={teacher.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="py-3 text-white font-medium">{teacher.name}</td>
-                    <td className="py-3 text-slate-400 truncate max-w-xs">{teacher.phrase_sentence}</td>
-                    <td className="py-3 text-[#c4a661] font-mono">{teacher.hidden_word}</td>
-                    <td className="py-3 text-slate-500">
+                  <tr key={teacher.id} className="border-b border-[#c4a661]/10 hover:bg-white/5">
+                    <td className="py-3 text-white">{teacher.name}</td>
+                    <td className="max-w-xs truncate py-3 text-neutral-400">{teacher.phrase_sentence}</td>
+                    <td className="py-3 font-mono text-[#c4a661]">{teacher.hidden_word}</td>
+                    <td className="py-3 text-neutral-500">
                       {new Date(teacher.created_at).toLocaleDateString('sk-SK')}
                     </td>
                     <td className="py-3">
-                      <button 
+                      <button
                         onClick={() => setPreviewTeacher(teacher)}
-                        className="text-xs uppercase tracking-widest text-[#c4a661] border border-[#c4a661] px-2 py-1 hover:bg-[#c4a661] hover:text-black transition"
+                        className="rounded-full border border-[#c4a661]/50 px-3 py-1 text-xs uppercase tracking-[0.16em] text-[#c4a661] transition hover:border-[#c4a661] hover:bg-[#c4a661]/10"
                       >
                         Nahlad
                       </button>
@@ -268,7 +247,51 @@ export default function TeachersPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
+
+      {previewTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl rounded-md border border-[#c4a661]/40 bg-[#121212] p-8 shadow-2xl md:p-14">
+            <button
+              onClick={() => setPreviewTeacher(null)}
+              className="absolute right-4 top-4 rounded-full border border-[#c4a661]/40 px-3 py-1 text-xs uppercase tracking-[0.14em] text-[#c4a661] transition hover:border-[#c4a661] hover:bg-[#c4a661]/10"
+            >
+              Zavriet
+            </button>
+
+            <div className="absolute left-4 top-4 h-12 w-12 border-l-2 border-t-2 border-[#c4a661]/60" />
+            <div className="absolute right-4 top-4 h-12 w-12 border-r-2 border-t-2 border-[#c4a661]/60" />
+            <div className="absolute bottom-4 left-4 h-12 w-12 border-b-2 border-l-2 border-[#c4a661]/60" />
+            <div className="absolute bottom-4 right-4 h-12 w-12 border-b-2 border-r-2 border-[#c4a661]/60" />
+
+            <div className="relative z-10 mx-auto text-center">
+              <h2 className="mb-4 text-sm uppercase tracking-[0.4em] text-[#c4a661]">Srdecne Vas pozyvame</h2>
+              <h3 className="mb-6 text-4xl text-white">Nasa Stuzkova</h3>
+              <p className="mb-10 text-xl italic text-neutral-300">
+                Vazeny ucitel/ka
+                <span className="mt-2 block text-2xl text-[#c4a661]">{previewTeacher.name}</span>
+              </p>
+
+              <div className="mx-auto max-w-md rounded-lg border border-[#c4a661]/20 bg-black/40 p-8 backdrop-blur-sm">
+                <div className="space-y-6">
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-[0.2em] text-neutral-500">Datum</p>
+                    <p className="text-2xl text-[#c4a661]">{previewTeacher.event_date || 'Doplnime'}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-[0.2em] text-neutral-500">Cas</p>
+                    <p className="text-2xl text-[#c4a661]">{previewTeacher.event_time || 'Doplnime'}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-[0.2em] text-neutral-500">Miesto</p>
+                    <p className="text-xl text-white">{previewTeacher.location || 'Doplnime'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
