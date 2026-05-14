@@ -59,7 +59,7 @@ export default async function Home({
                   {card.name}
                 </p>
                 <p className="mt-0.5 text-[10px] text-[#7b93b7] sm:text-[11px] lg:text-sm 2xl:text-base">
-                  4.B · 2026
+                  4.D · 2026
                 </p>
               </div>
             ))}
